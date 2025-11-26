@@ -4,122 +4,161 @@
 
 
 @push('scripts')
-<script>
-document.addEventListener("DOMContentLoaded", function() {
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
 
-    // Mostrar/ocultar formulario según método de pago
-    document.querySelectorAll('.selectorMetodoPago').forEach(select => {
-        select.addEventListener('change', function() {
-            const pedidoId = this.dataset.pedidoId;
-            const metodo = this.value;
-            document.getElementById("pagoManual" + pedidoId).style.display = (metodo === "manual") ? "block" : "none";
-            document.getElementById("pagoQR" + pedidoId).style.display = (metodo === "pagofacil") ? "block" : "none";
-        });
-    });
+            // Mostrar/ocultar formulario según método de pago
+            document.querySelectorAll('.selectorMetodoPago').forEach(select => {
+                select.addEventListener('change', function() {
+                    const pedidoId = this.dataset.pedidoId;
+                    const metodo = this.value;
+                    document.getElementById("pagoManual" + pedidoId).style.display = (metodo ===
+                        "manual") ? "block" : "none";
+                    document.getElementById("pagoQR" + pedidoId).style.display = (metodo ===
+                        "pagofacil") ? "block" : "none";
+                });
+            });
 
-    // PAGO MANUAL AJAX
-    document.querySelectorAll('.btnPagarManual').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const pagoId = this.dataset.pagoId;
-            const montoInput = document.querySelector('.montoManualInput[data-pago-id="'+pagoId+'"]');
-            const monto = parseFloat(montoInput.value);
+            // PAGO MANUAL AJAX
+            document.querySelectorAll('.btnPagarManual').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const pagoId = this.dataset.pagoId;
+                    const montoInput = document.querySelector('.montoManualInput[data-pago-id="' +
+                        pagoId + '"]');
+                    const monto = parseFloat(montoInput.value);
 
-            if(!monto || monto <= 0) { alert("Ingresa un monto válido"); return; }
+                    if (!monto || monto <= 0) {
+                        alert("Ingresa un monto válido");
+                        return;
+                    }
 
-            fetch("{{ url('/checkout/procesar_detalle') }}/" + pagoId, {  // ← CAMBIO
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Accept": "application/json",
-                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                },
-                body: JSON.stringify({ monto })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if(data.success) {
-                    alert(`Pago registrado: $${data.monto}. Saldo pendiente: $${data.saldo}`);
-                    location.reload();
-                } else {
-                    alert("Error: " + (data.error || "No se pudo procesar"));
-                }
-            })
-            .catch(err => { console.error(err); alert("Error de comunicación"); });
-        });
-    });
+                    fetch("{{ url('/checkout/procesar_detalle') }}/" + pagoId, { // ← CAMBIO
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "Accept": "application/json",
+                                "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                            },
+                            body: JSON.stringify({
+                                monto
+                            })
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                alert(
+                                    `Pago registrado: $${data.monto}. Saldo pendiente: $${data.saldo}`
+                                    );
+                                location.reload();
+                            } else {
+                                alert("Error: " + (data.error || "No se pudo procesar"));
+                            }
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            alert("Error de comunicación");
+                        });
+                });
+            });
 
-    // PAGO QR AJAX
-    document.querySelectorAll('.btnGenerarQR').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const pagoId = this.dataset.pagoId;
-            const pedidoId = this.dataset.pedidoId;
-            const qrContainer = document.getElementById("qrContainer" + pedidoId);
-            const estadoPago = document.getElementById("estadoPago" + pedidoId);
+            // PAGO QR AJAX
+            document.querySelectorAll('.btnGenerarQR').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const pagoId = this.dataset.pagoId;
+                    const pedidoId = this.dataset.pedidoId;
+                    const qrContainer = document.getElementById("qrContainer" + pedidoId);
+                    const estadoPago = document.getElementById("estadoPago" + pedidoId);
 
-            qrContainer.innerHTML = "Generando QR...";
-            estadoPago.innerHTML = "";
+                    qrContainer.innerHTML = "Generando QR...";
+                    estadoPago.innerHTML = "";
 
-            fetch("{{ url('/pagofacil/generar-qr') }}", {  // ← CAMBIO
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Accept": "application/json",
-                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                },
-                body: JSON.stringify({ pago_id: pagoId })
-            })
-            .then(res => {
-                console.log("Status QR:", res.status);
-                return res.json();
-            })
-            .then(data => {
-                console.log("Respuesta QR COMPLETA:", JSON.stringify(data, null, 2));
-                if (data.qr) {
-                    qrContainer.innerHTML =
-                        `<img src="${data.qr}" style="width:250px;">
+                    fetch("{{ url('/pagofacil/generar-qr') }}", { // ← CAMBIO
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "Accept": "application/json",
+                                "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                            },
+                            body: JSON.stringify({
+                                pago_id: pagoId
+                            })
+                        })
+                        .then(res => {
+                            console.log("Status QR:", res.status);
+                            return res.json();
+                        })
+                        .then(data => {
+                            console.log("Respuesta QR COMPLETA:", JSON.stringify(data, null,
+                                2));
+                            if (data.qr) {
+                                qrContainer.innerHTML =
+                                    `<img src="${data.qr}" style="width:250px;">
                          <p class="mt-2">Transacción: ${data.transaccion}</p>
                          <button class="btn btn-success mt-3 btnVerificarQR" data-transaccion="${data.transaccion}" data-pedido-id="${pedidoId}">
                              Verificar Pago
                          </button>`;
-                } else {
-                    qrContainer.innerHTML = "Error: " + (data.error || "No se pudo generar el QR");
-                }
-            }).catch(err => {
-                console.error("Error QR:", err);
-                qrContainer.innerHTML = "Error de comunicación con el servidor";
+                            } else {
+                                qrContainer.innerHTML = "Error: " + (data.error ||
+                                    "No se pudo generar el QR");
+                            }
+                        }).catch(err => {
+                            console.error("Error QR:", err);
+                            qrContainer.innerHTML = "Error de comunicación con el servidor";
+                        });
+                });
             });
+
+            // Verificar estado QR
+            // Verificar estado QR
+            document.addEventListener('click', function(e) {
+                if (e.target && e.target.classList.contains('btnVerificarQR')) {
+                    const transaccion = e.target.dataset.transaccion;
+                    const pedidoId = e.target.dataset.pedidoId;
+                    const estadoPago = document.getElementById("estadoPago" + pedidoId);
+                    estadoPago.innerHTML = "Consultando...";
+
+                    fetch("{{ url('/pagofacil/consultar-estado') }}", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "Accept": "application/json",
+                                "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                            },
+                            body: JSON.stringify({
+                                tnTransaccion: transaccion
+                            })
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            console.log("Respuesta consulta estado:", data);
+
+                            if (data.error) {
+                                estadoPago.innerHTML = "❌ Error: " + data.error;
+                                return;
+                            }
+
+                            // Mostrar el estado
+                            estadoPago.innerHTML = "Estado: " + (data.estado || "DESCONOCIDO");
+
+                            // Si está completado, registrar el pago
+                            if (data.estado === "COMPLETADO") {
+                                alert("¡Pago completado exitosamente!");
+                                location.reload();
+                            } else if (data.estado === "PENDIENTE") {
+                                estadoPago.innerHTML += " ⏳ (El pago aún está pendiente)";
+                            } else if (data.estado === "RECHAZADO") {
+                                estadoPago.innerHTML += " ❌ (El pago fue rechazado)";
+                            }
+                        })
+                        .catch(err => {
+                            console.error("Error:", err);
+                            estadoPago.innerHTML = "Error de comunicación";
+                        });
+                }
+            });
+
         });
-    });
-
-    // Verificar estado QR
-    document.addEventListener('click', function(e){
-        if(e.target && e.target.classList.contains('btnVerificarQR')) {
-            const transaccion = e.target.dataset.transaccion;
-            const pedidoId = e.target.dataset.pedidoId;
-            const estadoPago = document.getElementById("estadoPago" + pedidoId);
-            estadoPago.innerHTML = "Consultando...";
-
-            fetch("{{ url('/pagofacil/consultar-estado') }}", {  // ← CAMBIO
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Accept": "application/json",
-                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                },
-                body: JSON.stringify({ tnTransaccion: transaccion })
-            })
-            .then(res => res.json())
-            .then(data => {
-                estadoPago.innerHTML = "Estado: " + data.estado;
-                if(data.estado === "COMPLETADO" || data.estado === "PAGADO") {
-                    location.reload();
-                }
-            });
-        }
-    });
-
-});
-</script>
+    </script>
 @endpush
 
 

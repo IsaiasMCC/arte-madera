@@ -94,16 +94,16 @@ class PagoFacilController extends Controller
                 ])
                 ->post($this->baseUrl . '/generate-qr', [
                     "paymentMethod" => 4,
-                    "clientName" => $usuario->nombres ?? "Cliente",
+                    "clientName" => $usuario->name ?? "Cliente",
                     "documentType" => 1,
                     "documentId" => $usuario->ci ?? "0",
-                    "phoneNumber" => $usuario->telefono ?? "77046105",
+                    "phoneNumber" => $usuario->telefono ?? "00000000",
                     "email" => $usuario->email,
                     "paymentNumber" => "PED-" . $pedido->id . "-" . time(),
                     "amount" => (float) $monto,
                     "currency" => 2,
                     "clientCode" => "11001",
-                    "callbackUrl" => route('pagofacil.callback'),
+                    "callbackUrl" => "https://google.com",
                     "orderDetail" => $orderDetail
                 ]);
 
@@ -122,26 +122,31 @@ class PagoFacilController extends Controller
             $data = $resp->json();
             Log::info("Respuesta generate-qr", $data);
 
-            // Guardar ID de transacción
-            $transaccionId = $data['id'] ?? $data['transactionId'] ?? $data['TransactionId'];
-            $qrImage = $data['qrImage'] ?? $data['qr'] ?? $data['image'];
+            // Extraer datos según la respuesta real que vimos
+            $transaccionId = $data['values']['transactionId'] ?? null;
+            $qrBase64 = $data['values']['qrBase64'] ?? null;
 
-            if (!$transaccionId || !$qrImage) {
+            if (!$transaccionId || !$qrBase64) {
                 return response()->json([
                     "error" => "Respuesta incompleta de PagoFácil",
                     "data" => $data
                 ]);
             }
 
-            $pago->transaccion_qr = $transaccionId;
+            // Guardar transacción en BD
+            // $pago->transaccion_qr = $transaccionId;
             $pago->save();
 
             return response()->json([
-                "qr" => $qrImage,
+                "qr" => "data:image/png;base64," . $qrBase64,
                 "transaccion" => $transaccionId
             ]);
         } catch (\Exception $e) {
-            Log::error("Excepción en generarQR: " . $e->getMessage());
+            Log::error("Excepción en generarQR", [
+                'message' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile()
+            ]);
             return response()->json([
                 "error" => "Error interno: " . $e->getMessage()
             ], 500);
@@ -153,25 +158,65 @@ class PagoFacilController extends Controller
         try {
             $bearerToken = $this->getBearerToken();
 
-            // Según Postman es GET /query-transaction
+            Log::info("Consultando estado - Request", [
+                'transactionId' => $request->tnTransaccion,
+                'url' => $this->baseUrl . '/query-transaction'
+            ]);
+
+            // Es POST y usa pagofacilTransactionId en el body
             $resp = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $bearerToken
-            ])->get($this->baseUrl . '/query-transaction', [
-                'transactionId' => $request->tnTransaccion
+                'Authorization' => 'Bearer ' . $bearerToken,
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json'
+            ])->post($this->baseUrl . '/query-transaction', [
+                'pagofacilTransactionId' => $request->tnTransaccion
+            ]);
+
+            Log::info("Respuesta consulta estado", [
+                'status' => $resp->status(),
+                'body' => $resp->json()
             ]);
 
             if (!$resp->successful()) {
-                return response()->json(["error" => "Error al consultar estado"]);
+                return response()->json([
+                    "error" => "Error al consultar estado",
+                    "status" => $resp->status(),
+                    "details" => $resp->json()
+                ]);
             }
 
             $data = $resp->json();
-            Log::info("Estado de transacción", $data);
+
+            // El estado viene en values.paymentStatus
+            $paymentStatus = $data['values']['paymentStatus'] ?? null;
+
+            // Mapear el ID del estado a texto legible
+            $estadoTexto = "DESCONOCIDO";
+            switch ($paymentStatus) {
+                case 1:
+                    $estadoTexto = "PENDIENTE";
+                    break;
+                case 2:
+                    $estadoTexto = "COMPLETADO";
+                    break;
+                case 3:
+                    $estadoTexto = "RECHAZADO";
+                    break;
+                case 4:
+                    $estadoTexto = "ANULADO";
+                    break;
+            }
 
             return response()->json([
-                "estado" => $data["status"] ?? $data["state"] ?? "DESCONOCIDO",
+                "estado" => $estadoTexto,
+                "paymentStatus" => $paymentStatus,
                 "data" => $data
             ]);
         } catch (\Exception $e) {
+            Log::error("Excepción consultarEstado", [
+                'message' => $e->getMessage()
+            ]);
+
             return response()->json([
                 "error" => "Error: " . $e->getMessage()
             ], 500);
