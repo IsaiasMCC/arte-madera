@@ -18,4 +18,5 @@ class Pago extends Model
     {
         return $this->belongsTo(Pedido::class, 'pedido_id');
     }
+    
 }

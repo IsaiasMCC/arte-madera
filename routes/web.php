@@ -8,6 +8,7 @@ use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\EnvioController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MetodoPagoController;
+use App\Http\Controllers\PagoFacilController;
 use App\Http\Controllers\PedidoController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ReporteController;
@@ -72,5 +73,26 @@ Route::middleware([AuthCheckCuston::class])->group(function () {
         Route::get('/envios/reporte', [ReporteController::class, 'enviosPorEstado'])->name('reportes.envios');
         Route::get('/productos/reporte', [ReporteController::class, 'productosMasVendidos'])->name('reportes.productos');
         Route::get('ventas/reporte', [ReporteController::class, 'ventas'])->name('reportes.ventas');
+    });
+
+    Route::post('/pagofacil/generar-qr', [PagoFacilController::class, 'generarQR']);
+    Route::post('/pagofacil/consultar-estado', [PagoFacilController::class, 'consultarEstado']);
+    Route::post('/pagofacil/callback', [PagoFacilController::class, 'urlCallback'])->name('pagofacil.callback');
+
+    Route::get('/test-login-pagofacil', function () {
+        $tokenService = "51247fae280c20410824977b0781453df59fad5b23bf2a0d14e884482f91e09078dbe5966e0b970ba696ec4caf9aa5661802935f86717c481f1670e63f35d504a62547a9de71bfc76be2c2ae01039ebcb0f74a96f0f1f56542c8b51ef7a2a6da9ea16f23e52ecc4485b69640297a5ec6a701498d2f0e1b4e7f4b7803bf5c2eba";
+        $tokenSecret = "0C351C6679844041AA31AF9C";
+
+        $response = \Illuminate\Support\Facades\Http::withHeaders([
+            'tcTokenService' => $tokenService,
+            'tcTokenSecret' => $tokenSecret,
+            'Content-Type' => 'application/json'
+        ])->post('https://masterqr.pagofacil.com.bo/api/services/v2/login');
+
+        return response()->json([
+            'status' => $response->status(),
+            'body' => $response->json(),
+            'headers' => $response->headers()
+        ]);
     });
 });

@@ -127,26 +127,35 @@ class CheckoutController extends Controller
 
     public function procesarPagoDetalle(Request $request, Pago $pago)
     {
-        $pedido = $pago->pedido; // Obtenemos el pedido asociado
+        try {
+            $pedido = $pago->pedido;
 
-        $request->validate([
-            'monto' => 'required|numeric|min:0.01|max:' . $pedido->saldoPendiente(),
-        ]);
+            $request->validate([
+                'monto' => 'required|numeric|min:0.01|max:' . $pedido->saldoPendiente(),
+            ]);
 
-        // Registrar un detalle de pago parcial
-        $detalle = DetallePago::create([
-            'pago_id' => $pago->id,
-            'fecha' => Carbon::now()->format('Y-m-d'),
-            'hora' => Carbon::now()->format('H:i:s'),
-            'monto' => $request->monto,
-            'saldo' => $pedido->saldoPendiente() - $request->monto
-        ]);
+            $detalle = DetallePago::create([
+                'pago_id' => $pago->id,
+                'fecha' => Carbon::now()->format('Y-m-d'),
+                'hora' => Carbon::now()->format('H:i:s'),
+                'monto' => $request->monto,
+                'saldo' => $pedido->saldoPendiente() - $request->monto
+            ]);
 
-        // Actualizar el monto total del pago sumando todos los detalles
-        $pago->monto = $pago->detallePagos()->sum('monto');
-        $pago->save();
+            $pago->monto = $pago->detallePagos()->sum('monto');
+            $pago->save();
 
-        return redirect()->route('pedidos.mios')
-            ->with('success', "Pago de $ {$request->monto} registrado. Saldo pendiente: $ {$detalle->saldo}");
+            // Siempre devuelve JSON
+            return response()->json([
+                'success' => true,
+                'monto' => $detalle->monto,
+                'saldo' => $detalle->saldo,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }
