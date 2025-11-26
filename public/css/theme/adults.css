@@ -1,0 +1,83 @@
+.sidebar-style, .nav-header, .logo-element{
+    background: #3D3B40;
+}
+.modo-style {
+    background: #3D3B40;
+    padding: 4px !important;
+    color: white !important;
+    border-radius: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important; /* Opcional, por si hay texto en varias líneas */
+}
+
+
+.nav-label{
+    color: #ffffff
+}
+.style-tema{
+    color:black;
+}
+.gray-bg{
+    background:#F8EDFF !important;
+}
+.text-name-style{
+    color:#F8EDFF !important;
+  }
+.font-title-style{
+    color: #3D3B40;
+    font-weight: bold;
+}
+.input-label{
+    color:#000000
+}
+.font-parrafo-style{
+    font-size: 14px;
+    font-weight: normal;
+}
+.font-subtitle-style{
+    color: #BFCFE7
+}
+.custom-search-input::placeholder {
+    color: #000000; /* Color del placeholder */
+    opacity: 1; /* Asegura que el color aplicado sea visible en todos los navegadores */
+}
+.custom-header-style, .breadcrumb {
+    background-color: #F8EDFF; /* Cambia esto al color de fondo que desees */
+    color: #000000; /* Cambia esto al color de texto que desees */
+}
+.dropdown-toggle{
+    color:#000000 !important;
+}
+.sign-out{
+    color:#000000 !important;
+}
+/* Estilos button */
+/* Estilo para el botón */
+.btn-outline.btn-primary {
+    color: #3D3B40; /* Color del texto del botón */
+    background-color: transparent;
+    border: 2px solid #3D3B40; /* Borde del botón */
+    transition: all 0.3s ease-in-out;
+}
+
+/* Hover del botón */
+.btn-outline.btn-primary:hover {
+    color: #fff; /* Color del texto al hacer hover */
+    background-color: #3D3B40; /* Color de fondo al hacer hover */
+    border-color: #3D3B40; /* Borde al hacer hover */
+}
+.custom-search-input {
+    color: #000000 !important; /* Cambia esto al color que desees */
+}
+.footer {
+    background: white;
+    text-align: center;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    height: 25px;
+    padding: 5px;
+    font-weight: bold;
+}

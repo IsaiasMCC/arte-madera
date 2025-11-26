@@ -1,0 +1,117 @@
+.sidebar-style, .nav-header, .logo-element{
+    background: #205295;
+}
+.modo-style {
+    background: #205295;
+    padding: 4px;
+    color: white !important;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center; /* Opcional, por si hay texto en varias líneas */
+}
+
+.nav-label{
+    color: #ffffff
+}
+
+
+.font-title-style{
+    color: #ffffff;
+    font-weight: bold;
+}
+.text-name-style{
+    color:white !important;
+}
+.input-label{
+    color:#ffffff
+}
+.font-parrafo-style{
+    font-size: 14px;
+    font-weight: normal;
+}
+.font-subtitle-style{
+    color: #ffffff
+}
+.gray-bg{
+    background:#0A2647 !important;
+}
+.dropdown-toggle{
+    color:#ffffff !important;
+}
+.sign-out{
+    color:#ffffff !important;
+}
+.custom-search-input::placeholder {
+    color: #ffffff; /* Color del placeholder */
+    opacity: 1; /* Asegura que el color aplicado sea visible en todos los navegadores */
+}
+.custom-search-input {
+    color: #ffffff !important; /* Cambia esto al color que desees */
+}
+.custom-header-style, .breadcrumb {
+    background-color: #0A2647; /* Cambia esto al color de fondo que desees */
+    color: #ffffff; /* Cambia esto al color de texto que desees */
+}
+
+.style-tema{
+    color:white;
+    background: #2C74B3;
+}
+.custom-content-style {
+    background-color: #0A2647; /* Cambia esto al color de fondo que desees */
+}
+.input-color{
+    color:black;
+}
+.table-color{
+    background: #ffffff;
+}
+/* Estilos button */
+/* Estilo para el botón */
+.btn-outline.btn-primary {
+    color: #205295; /* Color del texto del botón */
+    background-color: transparent;
+    border: 2px solid #205295; /* Borde del botón */
+    transition: all 0.3s ease-in-out;
+}
+
+/* Hover del botón */
+.btn-outline.btn-primary:hover {
+    color: #fff; /* Color del texto al hacer hover */
+    background-color: #205295; /* Color de fondo al hacer hover */
+    border-color: #205295; /* Borde al hacer hover */
+}
+
+/* .minimalize-styl-2 {
+    padding: 4px 12px;
+    margin: 14px 5px 5px 20px;
+    font-size: 14px;
+    float: left;
+  } */
+  .input-search {
+    display: inline-block;
+    width: 500px; /* Ajusta el tamaño según tus necesidades */
+    margin: 14px 5px 5px 20px;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.input-search:focus {
+    border-color: #66afe9;
+    outline: none;
+    /* box-shadow: 0 0 8px rgba(102, 175, 233, 0.6); */
+}
+.footer {
+    background: white;
+    text-align: center;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    height: 25px;
+    padding: 5px;
+    font-weight: bold;
+}
