@@ -7,6 +7,15 @@
     <script>
         document.addEventListener("DOMContentLoaded", function() {
 
+            function mostrarModalPago(monto, saldo) {
+                const texto = `Pago registrado: $${monto}.<br>Saldo pendiente: $${saldo}`;
+                document.getElementById("textoPagoRealizado").innerHTML = texto;
+
+                const modal = new bootstrap.Modal(document.getElementById("modalPagoRealizado"));
+                modal.show();
+            }
+
+
             // Mostrar/ocultar formulario según método de pago
             document.querySelectorAll('.selectorMetodoPago').forEach(select => {
                 select.addEventListener('change', function() {
@@ -32,7 +41,7 @@
                         return;
                     }
 
-                    fetch("{{ url('/checkout/procesar_detalle') }}/" + pagoId, { // ← CAMBIO
+                    fetch("{{ url('/checkout/procesar/detalle') }}/" + pagoId, { // ← CAMBIO
                             method: "POST",
                             headers: {
                                 "Content-Type": "application/json",
@@ -46,10 +55,11 @@
                         .then(res => res.json())
                         .then(data => {
                             if (data.success) {
-                                alert(
-                                    `Pago registrado: $${data.monto}. Saldo pendiente: $${data.saldo}`
-                                    );
-                                location.reload();
+                                mostrarModalPago(data.monto, data.saldo);
+
+                                setTimeout(() => {
+                                    location.reload();
+                                }, 3000);
                             } else {
                                 alert("Error: " + (data.error || "No se pudo procesar"));
                             }
@@ -142,8 +152,12 @@
 
                             // Si está completado, registrar el pago
                             if (data.estado === "COMPLETADO") {
-                                alert("¡Pago completado exitosamente!");
-                                location.reload();
+                                mostrarModalPago(data.monto, data.saldo);
+
+                                setTimeout(() => {
+                                    location.reload();
+                                }, 2000);
+                                
                             } else if (data.estado === "PENDIENTE") {
                                 estadoPago.innerHTML += " ⏳ (El pago aún está pendiente)";
                             } else if (data.estado === "RECHAZADO") {
@@ -245,4 +259,29 @@
     @empty
         <p class="text-center text-muted">No tienes pedidos todavía.</p>
     @endforelse
+
+    <!-- Modal de Pago Realizado -->
+    <div class="modal fade" id="modalPagoRealizado" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">Pago realizado</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <p class="fs-5 text-center">
+                        <strong id="textoPagoRealizado"></strong>
+                    </p>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-success w-100" data-bs-dismiss="modal">Aceptar</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
 @endsection

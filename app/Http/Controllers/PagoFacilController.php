@@ -103,7 +103,7 @@ class PagoFacilController extends Controller
                     "amount" => (float) $monto,
                     "currency" => 2,
                     "clientCode" => "11001",
-                    "callbackUrl" => "https://google.com",
+                    "callbackUrl" => route('pagofacil.callback'),
                     "orderDetail" => $orderDetail
                 ]);
 
