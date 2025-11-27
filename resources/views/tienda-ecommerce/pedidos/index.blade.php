@@ -4,175 +4,187 @@
 
 
 @push('scripts')
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
+<script>
+document.addEventListener("DOMContentLoaded", function() {
 
-            function mostrarModalPago(monto, saldo) {
-                const texto = `Pago registrado: $${monto}.<br>Saldo pendiente: $${saldo}`;
-                document.getElementById("textoPagoRealizado").innerHTML = texto;
+    function mostrarModalPago(monto, saldo) {
+        const texto = `Pago registrado: $${monto}.<br>Saldo pendiente: $${saldo}`;
+        document.getElementById("textoPagoRealizado").innerHTML = texto;
 
-                const modal = new bootstrap.Modal(document.getElementById("modalPagoRealizado"));
-                modal.show();
+        const modal = new bootstrap.Modal(document.getElementById("modalPagoRealizado"));
+        modal.show();
+    }
+
+    // Inicializar estado de los formularios según el método seleccionado
+    document.querySelectorAll('.selectorMetodoPago').forEach(select => {
+        const pedidoId = select.dataset.pedidoId;
+        const metodo = select.value;
+
+        document.getElementById("pagoManual" + pedidoId).style.display =
+            (metodo === "manual") ? "block" : "none";
+
+        document.getElementById("pagoQR" + pedidoId).style.display =
+            (metodo === "pagofacil") ? "block" : "none";
+    });
+
+    // Evento de cambio en método de pago
+    document.querySelectorAll('.selectorMetodoPago').forEach(select => {
+        select.addEventListener('change', function() {
+            const pedidoId = this.dataset.pedidoId;
+            const metodo = this.value;
+
+            document.getElementById("pagoManual" + pedidoId).style.display =
+                (metodo === "manual") ? "block" : "none";
+
+            document.getElementById("pagoQR" + pedidoId).style.display =
+                (metodo === "pagofacil") ? "block" : "none";
+        });
+    });
+
+    // PAGO MANUAL
+    document.querySelectorAll('.btnPagarManual').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const pagoId = this.dataset.pagoId;
+            const input = document.querySelector('.montoManualInput[data-pago-id="' + pagoId + '"]');
+            const monto = parseFloat(input.value);
+
+            if (!monto || monto <= 0) {
+                alert("Ingresa un monto válido");
+                return;
             }
 
-
-            // Mostrar/ocultar formulario según método de pago
-            document.querySelectorAll('.selectorMetodoPago').forEach(select => {
-                select.addEventListener('change', function() {
-                    const pedidoId = this.dataset.pedidoId;
-                    const metodo = this.value;
-                    document.getElementById("pagoManual" + pedidoId).style.display = (metodo ===
-                        "manual") ? "block" : "none";
-                    document.getElementById("pagoQR" + pedidoId).style.display = (metodo ===
-                        "pagofacil") ? "block" : "none";
-                });
-            });
-
-            // PAGO MANUAL AJAX
-            document.querySelectorAll('.btnPagarManual').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const pagoId = this.dataset.pagoId;
-                    const montoInput = document.querySelector('.montoManualInput[data-pago-id="' +
-                        pagoId + '"]');
-                    const monto = parseFloat(montoInput.value);
-
-                    if (!monto || monto <= 0) {
-                        alert("Ingresa un monto válido");
-                        return;
-                    }
-
-                    fetch("{{ url('/checkout/procesar/detalle') }}/" + pagoId, { // ← CAMBIO
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                                "Accept": "application/json",
-                                "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                            },
-                            body: JSON.stringify({
-                                monto
-                            })
-                        })
-                        .then(res => res.json())
-                        .then(data => {
-                            if (data.success) {
-                                mostrarModalPago(data.monto, data.saldo);
-
-                                setTimeout(() => {
-                                    location.reload();
-                                }, 3000);
-                            } else {
-                                alert("Error: " + (data.error || "No se pudo procesar"));
-                            }
-                        })
-                        .catch(err => {
-                            console.error(err);
-                            alert("Error de comunicación");
-                        });
-                });
-            });
-
-            // PAGO QR AJAX
-            document.querySelectorAll('.btnGenerarQR').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const pagoId = this.dataset.pagoId;
-                    const pedidoId = this.dataset.pedidoId;
-                    const qrContainer = document.getElementById("qrContainer" + pedidoId);
-                    const estadoPago = document.getElementById("estadoPago" + pedidoId);
-
-                    qrContainer.innerHTML = "Generando QR...";
-                    estadoPago.innerHTML = "";
-
-                    fetch("{{ url('/pagofacil/generar-qr') }}", { // ← CAMBIO
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                                "Accept": "application/json",
-                                "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                            },
-                            body: JSON.stringify({
-                                pago_id: pagoId
-                            })
-                        })
-                        .then(res => {
-                            console.log("Status QR:", res.status);
-                            return res.json();
-                        })
-                        .then(data => {
-                            console.log("Respuesta QR COMPLETA:", JSON.stringify(data, null,
-                                2));
-                            if (data.qr) {
-                                qrContainer.innerHTML =
-                                    `<img src="${data.qr}" style="width:250px;">
-                         <p class="mt-2">Transacción: ${data.transaccion}</p>
-                         <button class="btn btn-success mt-3 btnVerificarQR" data-transaccion="${data.transaccion}" data-pedido-id="${pedidoId}">
-                             Verificar Pago
-                         </button>`;
-                            } else {
-                                qrContainer.innerHTML = "Error: " + (data.error ||
-                                    "No se pudo generar el QR");
-                            }
-                        }).catch(err => {
-                            console.error("Error QR:", err);
-                            qrContainer.innerHTML = "Error de comunicación con el servidor";
-                        });
-                });
-            });
-
-            // Verificar estado QR
-            // Verificar estado QR
-            document.addEventListener('click', function(e) {
-                if (e.target && e.target.classList.contains('btnVerificarQR')) {
-                    const transaccion = e.target.dataset.transaccion;
-                    const pedidoId = e.target.dataset.pedidoId;
-                    const estadoPago = document.getElementById("estadoPago" + pedidoId);
-                    estadoPago.innerHTML = "Consultando...";
-
-                    fetch("{{ url('/pagofacil/consultar-estado') }}", {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                                "Accept": "application/json",
-                                "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                            },
-                            body: JSON.stringify({
-                                tnTransaccion: transaccion
-                            })
-                        })
-                        .then(res => res.json())
-                        .then(data => {
-                            console.log("Respuesta consulta estado:", data);
-
-                            if (data.error) {
-                                estadoPago.innerHTML = "❌ Error: " + data.error;
-                                return;
-                            }
-
-                            // Mostrar el estado
-                            estadoPago.innerHTML = "Estado: " + (data.estado || "DESCONOCIDO");
-
-                            // Si está completado, registrar el pago
-                            if (data.estado === "COMPLETADO") {
-                                mostrarModalPago(data.monto, data.saldo);
-
-                                setTimeout(() => {
-                                    location.reload();
-                                }, 2000);
-                                
-                            } else if (data.estado === "PENDIENTE") {
-                                estadoPago.innerHTML += " ⏳ (El pago aún está pendiente)";
-                            } else if (data.estado === "RECHAZADO") {
-                                estadoPago.innerHTML += " ❌ (El pago fue rechazado)";
-                            }
-                        })
-                        .catch(err => {
-                            console.error("Error:", err);
-                            estadoPago.innerHTML = "Error de comunicación";
-                        });
+            fetch("{{ url('/checkout/procesar/detalle') }}/" + pagoId, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                },
+                body: JSON.stringify({ monto })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    mostrarModalPago(data.monto, data.saldo);
+                    setTimeout(() => location.reload(), 3000);
+                } else {
+                    alert("Error: " + (data.error || "No se pudo procesar"));
                 }
+            })
+            .catch(err => {
+                console.error(err);
+                alert("Error de comunicación");
             });
-
         });
-    </script>
+    });
+
+    // GENERAR QR
+    document.querySelectorAll('.btnGenerarQR').forEach(btn => {
+        btn.addEventListener('click', function() {
+
+            const pagoId = this.dataset.pagoId;
+            const pedidoId = this.dataset.pedidoId;
+
+            // CORRECCIÓN PRINCIPAL: selector 100% seguro
+            const montoInputQR = document.querySelector(`#pagoQR${pedidoId} .montoQRInput`);
+            const montoQR = parseFloat(montoInputQR.value);
+
+            if (!montoQR || montoQR <= 0) {
+                alert("Ingresa un monto válido para generar el QR");
+                return;
+            }
+
+            const qrContainer = document.getElementById("qrContainer" + pedidoId);
+            const estadoPago = document.getElementById("estadoPago" + pedidoId);
+
+            qrContainer.innerHTML = "Generando QR...";
+            estadoPago.innerHTML = "";
+
+            fetch("{{ url('/pagofacil/generar-qr') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                },
+                body: JSON.stringify({
+                    pago_id: pagoId,
+                    monto: montoQR
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+
+                if (data.qr) {
+                    qrContainer.innerHTML = `
+                        <img src="${data.qr}" style="width:250px;">
+                        <p class="mt-2">Transacción: ${data.transaccion}</p>
+
+                        <button class="btn btn-success mt-3 btnVerificarQR"
+                            data-transaccion="${data.transaccion}"
+                            data-pedido-id="${pedidoId}">
+                            Verificar Pago
+                        </button>
+                    `;
+                } else {
+                    qrContainer.innerHTML = "Error: " + (data.error ?? "No se pudo generar el QR");
+                }
+            })
+            .catch(err => {
+                console.error("Error QR:", err);
+                qrContainer.innerHTML = "Error de comunicación";
+            });
+        });
+    });
+
+    // VERIFICAR PAGO QR
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.classList.contains('btnVerificarQR')) {
+
+            const transaccion = e.target.dataset.transaccion;
+            const pedidoId = e.target.dataset.pedidoId;
+            const estadoPago = document.getElementById("estadoPago" + pedidoId);
+
+            estadoPago.innerHTML = "Consultando...";
+
+            fetch("{{ url('/pagofacil/consultar-estado') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                },
+                body: JSON.stringify({ tnTransaccion: transaccion })
+            })
+            .then(res => res.json())
+            .then(data => {
+
+                if (data.error) {
+                    estadoPago.innerHTML = "❌ Error: " + data.error;
+                    return;
+                }
+
+                estadoPago.innerHTML = "Estado: " + (data.estado || "DESCONOCIDO");
+
+                if (data.estado === "COMPLETADO") {
+                    mostrarModalPago(data.monto, data.saldo);
+                    setTimeout(() => location.reload(), 4000);
+
+                } else if (data.estado === "PENDIENTE") {
+                    estadoPago.innerHTML += " ⏳ (Pago pendiente)";
+                } else if (data.estado === "RECHAZADO") {
+                    estadoPago.innerHTML += " ❌ (Pago rechazado)";
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                estadoPago.innerHTML = "Error de comunicación";
+            });
+        }
+    });
+
+});
+</script>
 @endpush
 
 
@@ -189,7 +201,6 @@
             </div>
 
             <div class="card-body">
-                <!-- Productos -->
                 <h5 class="card-title">Productos</h5>
                 <ul class="list-group list-group-flush mb-3">
                     @foreach ($pedido->detalles as $detalle)
@@ -204,7 +215,6 @@
                     </li>
                 </ul>
 
-                <!-- Pagos realizados -->
                 <h6>Pagos realizados</h6>
                 @if ($pedido->pago && $pedido->pago->detallePagos->count() > 0)
                     <ul class="list-group mb-3">
@@ -220,7 +230,7 @@
                 @endif
 
                 @if ($pedido->saldoPendiente() > 0)
-                    <!-- Selector método de pago -->
+
                     <div class="mt-3">
                         <label class="form-label fw-bold">Método de pago</label>
                         <select class="form-select selectorMetodoPago" data-pedido-id="{{ $pedido->id }}">
@@ -229,25 +239,35 @@
                         </select>
                     </div>
 
-                    <!-- Pago manual -->
                     <div class="mt-3 pagoManual" id="pagoManual{{ $pedido->id }}">
                         <input type="number" step="0.01" min="0.01" max="{{ $pedido->saldoPendiente() }}"
-                            class="form-control montoManualInput mb-2" data-pago-id="{{ $pedido->pago->id }}"
+                            class="form-control montoManualInput mb-2"
+                            data-pago-id="{{ $pedido->pago->id ?? 0 }}"
                             placeholder="Monto a pagar">
-                        <button class="btn btn-wood w-100 btnPagarManual" data-pago-id="{{ $pedido->pago->id }}">
+
+                        <button class="btn btn-wood w-100 btnPagarManual"
+                            data-pago-id="{{ $pedido->pago->id ?? 0 }}">
                             Pagar Manualmente
                         </button>
                     </div>
 
-                    <!-- Pago QR -->
                     <div class="mt-3 pagoQR" id="pagoQR{{ $pedido->id }}" style="display:none;">
-                        <button class="btn btn-primary w-100 btnGenerarQR" data-pago-id="{{ $pedido->pago->id }}"
+                        <input type="number" step="0.01" min="0.01" max="{{ $pedido->saldoPendiente() }}"
+                            class="form-control montoQRInput mb-2"
+                            data-pago-id="{{ $pedido->pago->id ?? 0 }}"
+                            data-pedido-id="{{ $pedido->id }}"
+                            placeholder="Monto a pagar con QR">
+
+                        <button class="btn btn-primary w-100 btnGenerarQR"
+                            data-pago-id="{{ $pedido->pago->id ?? 0 }}"
                             data-pedido-id="{{ $pedido->id }}">
-                            Pagar con QR PagoFácil
+                            Generar QR con monto ingresado
                         </button>
+
                         <div id="qrContainer{{ $pedido->id }}" class="text-center mt-3"></div>
                         <div id="estadoPago{{ $pedido->id }}" class="text-center mt-2 fw-bold"></div>
                     </div>
+
                 @endif
 
                 <a href="{{ route('pedidos.estado', $pedido->id) }}" class="btn btn-outline-primary w-100 mt-3">
@@ -260,7 +280,6 @@
         <p class="text-center text-muted">No tienes pedidos todavía.</p>
     @endforelse
 
-    <!-- Modal de Pago Realizado -->
     <div class="modal fade" id="modalPagoRealizado" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">

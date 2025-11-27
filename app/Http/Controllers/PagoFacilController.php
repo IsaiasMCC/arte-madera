@@ -228,13 +228,22 @@ class PagoFacilController extends Controller
         try {
             Log::info("Callback PagoFácil recibido", $request->all());
 
-            // Obtener datos del callback
-            $transaccionId = $request->input('transactionId')
-                ?? $request->input('TransactionId')
-                ?? $request->input('id');
+            // PagoFacil envía PedidoID y Estado
+            $transaccionId =
+                $request->input('PedidoID') ??
+                $request->input('transactionId') ??
+                $request->input('TransactionId') ??
+                $request->input('id');
 
-            $estado = $request->input('status')
-                ?? $request->input('state');
+            $estado =
+                $request->input('Estado') ??
+                $request->input('status') ??
+                $request->input('state');
+
+            if (!$transaccionId) {
+                Log::error("No se recibió transactionId / PedidoID");
+                return response()->json(["error" => "transactionId requerido"], 400);
+            }
 
             $pago = Pago::where('transaccion_qr', $transaccionId)->first();
 
@@ -243,14 +252,14 @@ class PagoFacilController extends Controller
                 return response()->json(["error" => "Pago no encontrado"], 404);
             }
 
-            // Estados que indican pago completado (ajusta según documentación)
-            $estadosCompletados = ['COMPLETED', 'PAGADO', 'APPROVED', 'SUCCESS'];
+            // PagoFacil --> Estado = 2 = pagado
+            $estadosPagado = ['2', 2, 'COMPLETED', 'PAGADO', 'APPROVED', 'SUCCESS'];
 
-            if (in_array(strtoupper($estado), $estadosCompletados)) {
+            if (in_array(strtoupper($estado), $estadosPagado)) {
+
                 $pedido = $pago->pedido;
                 $monto = $pedido->saldoPendiente();
 
-                // Registrar el pago
                 DetallePago::create([
                     'pago_id' => $pago->id,
                     'fecha' => now()->format('Y-m-d'),
