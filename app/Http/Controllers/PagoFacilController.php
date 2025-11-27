@@ -228,44 +228,54 @@ class PagoFacilController extends Controller
         try {
             Log::info("Callback PagoFácil recibido", $request->all());
 
-            // PagoFacil envía PedidoID y Estado
-            $transaccionId =
-                $request->input('PedidoID') ??
-                $request->input('transactionId') ??
-                $request->input('TransactionId') ??
-                $request->input('id');
-
-            $estado =
-                $request->input('Estado') ??
-                $request->input('status') ??
-                $request->input('state');
+            // Leer campos reales que envía PagoFácil
+            $transaccionId = $request->input('PedidoID');
+            $estado        = $request->input('Estado');
+            $fecha         = $request->input('Fecha');
+            $hora          = $request->input('Hora');
+            $metodoPago    = $request->input('MetodoPago');
 
             if (!$transaccionId) {
-                Log::error("No se recibió transactionId / PedidoID");
-                return response()->json(["error" => "transactionId requerido"], 400);
+                Log::error("No se recibió PedidoID en el callback");
+                return response()->json([
+                    'error' => 1,
+                    'status' => 0,
+                    'message' => 'PedidoID requerido',
+                    'messageMostrar' => 0,
+                    'messageSistema' => 'Campo PedidoID ausente',
+                    'values' => false
+                ], 400);
             }
 
             $pago = Pago::where('transaccion_qr', $transaccionId)->first();
 
             if (!$pago) {
                 Log::warning("Pago no encontrado para transacción: " . $transaccionId);
-                return response()->json(["error" => "Pago no encontrado"], 404);
+                return response()->json([
+                    'error' => 1,
+                    'status' => 0,
+                    'message' => 'Pago no encontrado',
+                    'messageMostrar' => 0,
+                    'messageSistema' => '',
+                    'values' => false
+                ], 404);
             }
 
-            // PagoFacil --> Estado = 2 = pagado
+            // Estados que indican que el pago fue completado
             $estadosPagado = ['2', 2, 'COMPLETED', 'PAGADO', 'APPROVED', 'SUCCESS'];
 
-            if (in_array(strtoupper($estado), $estadosPagado)) {
+            if (in_array($estado, $estadosPagado)) {
 
                 $pedido = $pago->pedido;
-                $monto = $pedido->saldoPendiente();
+                $monto  = $pedido->saldoPendiente();
 
+                // Registrar el pago
                 DetallePago::create([
                     'pago_id' => $pago->id,
-                    'fecha' => now()->format('Y-m-d'),
-                    'hora' => now()->format('H:i:s'),
-                    'monto' => $monto,
-                    'saldo' => 0
+                    'fecha'   => $fecha ?? now()->format('Y-m-d'),
+                    'hora'    => $hora ?? now()->format('H:i:s'),
+                    'monto'   => $monto,
+                    'saldo'   => 0
                 ]);
 
                 $pago->monto = $pago->detallePagos()->sum('monto');
@@ -273,14 +283,33 @@ class PagoFacilController extends Controller
 
                 Log::info("Pago procesado exitosamente", [
                     'pago_id' => $pago->id,
-                    'monto' => $monto
+                    'monto'   => $monto,
+                    'metodo'  => $metodoPago
                 ]);
             }
 
-            return response()->json(["success" => true]);
+            // RESPUESTA con tu formato completo
+            return response()->json([
+                'error' => 0,
+                'status' => 1,
+                'message' => 'Pago realizado correctamente',
+                'messageMostrar' => 0,
+                'messageSistema' => '',
+                'values' => true
+            ], 200);
         } catch (\Exception $e) {
-            Log::error("Error en callback: " . $e->getMessage());
-            return response()->json(["error" => $e->getMessage()], 500);
+            Log::error("Error en callback: " . $e->getMessage(), [
+                'stack' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'error' => 1,
+                'status' => 0,
+                'message' => 'Ocurrió un error al procesar la transacción',
+                'messageMostrar' => 0,
+                'messageSistema' => $e->getMessage(),
+                'values' => false
+            ], 500);
         }
     }
 }
